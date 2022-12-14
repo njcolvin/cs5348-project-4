@@ -63,8 +63,12 @@ main(int argc, char *argv[])
   // read root inode
   printf("Root inode  size %d links %d type %d \n", dip[ROOTINO].size, dip[ROOTINO].nlink, dip[ROOTINO].type);
 
-  // get the address of root dir 
+  // get the address of root dir
   de = (struct dirent *) (addr + (dip[ROOTINO].addrs[0])*BLOCK_SIZE);
+  
+  // check root dir
+  if (de == NULL || de[0].inum != ROOTINO || de[0].inum != de[1].inum)
+    fprintf(stderr, "ERROR: root directory does not exist.\n");
 
   // print the entries in the first block of root dir 
 
