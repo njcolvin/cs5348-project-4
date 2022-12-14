@@ -76,17 +76,28 @@ main(int argc, char *argv[])
 
   short inode_types[sb->ninodes];
   uint direct_blocks[NDIRECT];
+  uint indirect_blocks[NINDIRECT];
 
   int j;
   for (i = 1; i <= sb->ninodes; i++) {
     // get inode types
     inode_types[i - 1] = dip[i].type;
     
-    // get direct blocks
+    // in use inode
     if (inode_types[i - 1] > 0) {
+      // get direct blocks
       for (j = 0; j < NDIRECT; j++) {
         direct_blocks[j] = dip[i].addrs[j];
         printf("inode %d direct block %d = %d\n", i, j, direct_blocks[j]);
+      }
+
+      // get indirect blocks
+      uint indirect_block_no = dip[i].addrs[NDIRECT];
+      uint *ib = (uint *) (addr + indirect_block_no * BLOCK_SIZE);
+      for (j = 0; j < NINDIRECT; j++) {
+        indirect_blocks[j] = *(ib + j);
+        if (indirect_blocks[j] > 0)
+          printf("inode %d indirect block %d = %d\n", i, j, indirect_blocks[j]);
       }
     }
     
