@@ -74,6 +74,32 @@ main(int argc, char *argv[])
   	printf("inode  size %d links %d type %d \n", dip[de->inum].size, dip[de->inum].nlink, dip[de->inum].type);
   }
 
+  short inode_types[sb->ninodes];
+  uint direct_blocks[NDIRECT];
+
+  int j;
+  for (i = 1; i <= sb->ninodes; i++) {
+    // get inode types
+    inode_types[i - 1] = dip[i].type;
+    
+    // get direct blocks
+    if (inode_types[i - 1] > 0) {
+      for (j = 0; j < NDIRECT; j++) {
+        direct_blocks[j] = dip[i].addrs[j];
+        printf("inode %d direct block %d = %d\n", i, j, direct_blocks[j]);
+      }
+    }
+    
+  }
+
+  // check inode types
+  for (i = 1; i <= sb->ninodes; i++) {
+    if (inode_types[i - 1] < 0 || inode_types[i - 1] > 3) {
+      fprintf(stderr, "ERROR: bad inode.\n");
+    }
+  }
+    
+
   // get the bitmap block
   bmp = (addr + sb->nblocks * BLOCK_SIZE);
   printf("bmp=%p\n", bmp);
