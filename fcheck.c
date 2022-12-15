@@ -92,6 +92,10 @@ main(int argc, char *argv[])
       for (j = 0; j < NDIRECT; j++) {
         index = i * (NDIRECT + 1) + j;
         if (dip[i + 1].addrs[j] > 0) {
+          if (dip[i+1].addrs[j] >= sb->size) {
+            printf("ERROR: bad direct address in inode.\n");
+            exit(1);
+          }
           direct_blocks[index] = dip[i + 1].addrs[j];
           printf("inode %d direct block %d = %d\n", i + 1, j, direct_blocks[index]);
         } else {
@@ -113,8 +117,14 @@ main(int argc, char *argv[])
       for (j = 0; j < NINDIRECT; j++) {
         index = i * NINDIRECT + j;
         indirect_blocks[index] = *(ib + j);
-        if (indirect_blocks[index] > 0)
+        if (indirect_blocks[index] > 0) {
+          if (indirect_blocks[index] >= sb->size) {
+            printf("ERROR: bad indirect address in inode.\n");
+            exit(1);
+          }
           printf("inode %d indirect block %d = %d\n", i + 1, j, indirect_blocks[index]);
+        }
+          
       }
     } else {
       for (j = 0; j < NDIRECT; j++) {
