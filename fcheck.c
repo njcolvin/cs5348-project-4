@@ -162,6 +162,31 @@ main(int argc, char *argv[])
     }
   }
 
+  // check if bitmap blocks are being used
+  for (i = 0; i < BPB * (sb->size/BPB) + (sb->size%BPB); i++) {
+    if (!bits_in_use[i])
+      continue;
+
+    int found = 0;
+    for (j = 0; j < sb->ninodes; j++) {
+      int k;
+      for (k = 0; k < NDIRECT; k++) {
+        index = j * (NDIRECT + 1) + k;
+        if (direct_blocks[index] == i) {
+          found = 1;
+          break;
+        }
+      }
+      if (found)
+        break;
+    }
+
+    if (!found) {
+      fprintf(stderr, "ERROR: bitmap marks block in use but it is not in use.\n");
+      exit(1);
+    }
+  }
+
   exit(0);
 
 }
