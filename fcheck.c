@@ -207,6 +207,31 @@ main(int argc, char *argv[])
     }
   }
 
+  // check if inode blocks are used more than once
+  int ii, jj;
+  for (i = 0; i < sb->ninodes; i++) {
+    for (j = 0; j < NDIRECT; j++) {
+      index = i * (NDIRECT + 1) + j;
+      uint value = direct_blocks[index];
+      if (value <= 0)
+        continue;
+
+      for (ii = 0; ii < sb->ninodes; ii++) {
+        for (jj = 0; jj < NDIRECT; jj++) {
+          if (i == ii && j == jj)
+            continue;
+          int index2 = ii * (NDIRECT + 1) + jj;
+          uint value2 = direct_blocks[index2];
+
+          if (value == value2) {
+            fprintf(stderr, "ERROR: direct address used more than once.\n");
+            exit(1);
+          }
+        }
+      }
+    }
+  }
+
   exit(0);
 
 }
