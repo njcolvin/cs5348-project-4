@@ -134,9 +134,9 @@ main(int argc, char *argv[])
     bp = addr + BBLOCK(b, sb->ninodes) * BLOCK_SIZE;
     for(bi = 0; bi < BPB; bi++){
       int m = 1 << (bi % 8);
-      if(((uchar)*(bp + bi/8) & m) != 0){  // Is block in use?
+      if((*(bp + bi/8) & m) != 0)  // Is block in use?
         bits_in_use[b + bi] = 1;
-      } else if (b + bi < sb->size)
+      else if (b + bi < sb->size)
         bits_in_use[b + bi] = 0;
     }
   }
@@ -150,12 +150,11 @@ main(int argc, char *argv[])
   }
 
   // check if direct blocks are marked in use in bitmap
-  for (i = 1; i < sb->ninodes; i++) {
+  for (i = 0; i < sb->ninodes; i++) {
     for (j = 0; j < NDIRECT; j++) {
       index = i * (NDIRECT + 1) + j;
-      if (direct_blocks[index] > 0) {
-        printf("inode %d direct block %d = %d\n", i + 1, j, direct_blocks[index]);
-        if (bits_in_use[direct_blocks[i]] == 0) {
+      if (direct_blocks[index] != 0) {
+        if (bits_in_use[direct_blocks[index]] == 0) {
           fprintf(stderr, "ERROR: address used by inode but marked free in bitmap.\n");
           exit(1);
         }
