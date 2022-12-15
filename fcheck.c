@@ -109,7 +109,7 @@ main(int argc, char *argv[])
       if (indirect_block_no <= 0)
         continue;
       
-      index = (i + 1) * NDIRECT;      
+      index = NDIRECT + i * (NDIRECT + 1); 
       direct_blocks[index] = indirect_block_no;
       printf("inode %d using indirect blocks. indirect block = %d\n", i + 1, direct_blocks[index]);
 
@@ -173,22 +173,32 @@ main(int argc, char *argv[])
   }
 
   // check if bitmap blocks are being used
-  for (i = 0; i < BPB * (sb->size/BPB) + (sb->size%BPB); i++) {
+  for (i = direct_blocks[0]; i < BPB * (sb->size/BPB) + (sb->size%BPB); i++) {
     if (!bits_in_use[i])
       continue;
 
     int found = 0;
     for (j = 0; j < sb->ninodes; j++) {
       int k;
-      for (k = 0; k < NDIRECT; k++) {
+      
+      for (k = 0; k <= NDIRECT; k++) {
         index = j * (NDIRECT + 1) + k;
         if (direct_blocks[index] == i) {
           found = 1;
           break;
         }
       }
+      
       if (found)
         break;
+      
+      for (k = 0; k < NINDIRECT; k++) {
+        index = j * NINDIRECT + k;
+        if (indirect_blocks[index] == i) {
+          found = 1;
+          break;
+        }
+      }
     }
 
     if (!found) {
