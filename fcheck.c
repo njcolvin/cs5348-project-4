@@ -79,29 +79,40 @@ main(int argc, char *argv[])
   }
 
   short inode_types[sb->ninodes];
-  uint direct_blocks[NDIRECT];
-  uint indirect_blocks[NINDIRECT];
+  uint direct_blocks[sb->ninodes * (NDIRECT + 1)]; // + 1 to indicate if indirect block is in use
+  uint indirect_blocks[sb->ninodes * NINDIRECT];
 
-  int j;
-  for (i = 1; i <= sb->ninodes; i++) {
+  int j, index;
+  for (i = 0; i < sb->ninodes; i++) {
     // get inode types
-    inode_types[i - 1] = dip[i].type;
+    inode_types[i] = dip[i + 1].type;
     
     // in use inode
-    if (inode_types[i - 1] > 0) {
+    if (inode_types[i] > 0) {
       // get direct blocks
+      
       for (j = 0; j < NDIRECT; j++) {
-        direct_blocks[j] = dip[i].addrs[j];
-        printf("inode %d direct block %d = %d\n", i, j, direct_blocks[j]);
+        index = i * (NDIRECT + 1) + j;
+        direct_blocks[index] = dip[i + 1].addrs[j];
+        if (direct_blocks[index] > 0)
+          printf("inode %d direct block %d = %d\n", i + 1, j, direct_blocks[index]);
       }
 
       // get indirect blocks
-      uint indirect_block_no = dip[i].addrs[NDIRECT];
+      uint indirect_block_no = dip[i + 1].addrs[NDIRECT];
+      if (indirect_block_no <= 0)
+        continue;
+      
+      index = (i + 1) * NDIRECT;      
+      direct_blocks[index] = indirect_block_no;
+      printf("inode %d using indirect blocks. indirect block = %d\n", i + 1, direct_blocks[index]);
+
       uint *ib = (uint *) (addr + indirect_block_no * BLOCK_SIZE);
       for (j = 0; j < NINDIRECT; j++) {
-        indirect_blocks[j] = *(ib + j);
-        if (indirect_blocks[j] > 0)
-          printf("inode %d indirect block %d = %d\n", i, j, indirect_blocks[j]);
+        index = i * NINDIRECT + j;
+        indirect_blocks[index] = *(ib + j);
+        if (indirect_blocks[index] > 0)
+          printf("inode %d indirect block %d = %d\n", i + 1, j, indirect_blocks[index]);
       }
     }
     
@@ -118,18 +129,33 @@ main(int argc, char *argv[])
   // get the bitmap block
   bmp = (addr + sb->nblocks * BLOCK_SIZE);
   printf("bmp=%p\n", bmp);
+  printf("BPB * sb->size=%d\n", BPB * sb->size);
+  
 
+  int bits_in_use[BPB * (sb->size/BPB) + (sb->size%BPB)];
   char *bp;
   int b, bi;
+
   for(b = 0; b < sb->size; b += BPB){
     bp = addr + BBLOCK(b, sb->ninodes) * BLOCK_SIZE;
     for(bi = 0; bi < BPB; bi++){
       int m = 1 << (bi % 8);
       if(!((uchar)*(bp + bi/8) & m) == 0){  // Is block free?
-        printf("bit %d in block %d in use\n", bi, b);
-      }
+        printf("bit %d in block %d in use\n", b + bi, b / BPB);
+        bits_in_use[b + bi] = 1;
+      } else if (b + bi < sb->size)
+        bits_in_use[b + bi] = 0;
     }
   }
+
+  int count = 0;
+  for(b = 0; b < sb->size; b++) {
+    if (bits_in_use[b] == 1) {
+      count++;
+    }
+  }
+
+  printf("%d bits set\n", count);
   // *(addr + ((i/8) * sizeof(char))) & m) == 0
   exit(0);
 
